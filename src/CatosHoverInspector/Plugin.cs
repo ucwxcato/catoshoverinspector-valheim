@@ -23,6 +23,8 @@ namespace CatosHoverInspector
 
             if (ModConfig.EnablePipelineSmokeTest.Value)
                 InspectorRegistry.Register(new NativeHoverSmokeInspector());
+            if (ModConfig.EnableProcessingInspector.Value)
+                InspectorRegistry.Register(new ProcessingInspector());
             if (ModConfig.EnableCraftingStationInspector.Value)
                 InspectorRegistry.Register(new CraftingStationInspector());
 

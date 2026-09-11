@@ -29,22 +29,19 @@ namespace CatosHoverInspector
             string coverageText = TryReadCoverage(station, out covered)
                 ? (covered ? "Yes" : "No")
                 : "Unknown";
-            bool usable = station.CheckUsable(context.Player, false);
             string stationName = SafeText.CleanOrFallback(station.GetHoverName(), "Crafting station");
 
             var lines = new List<DisplayLine>
             {
                 new DisplayLine("Level", level.ToString(CultureInfo.InvariantCulture)),
                 new DisplayLine("Extensions (detected)", extensionCount.ToString(CultureInfo.InvariantCulture)),
-                new DisplayLine("Covered", coverageText),
-                new DisplayLine("Usable", usable ? "Yes" : "No")
+                new DisplayLine("Covered", coverageText)
             };
 
             string fingerprint = string.Join("|", stationName,
                 level.ToString(CultureInfo.InvariantCulture),
                 extensionCount.ToString(CultureInfo.InvariantCulture),
-                coverageText,
-                usable ? "usable" : "not-usable");
+                coverageText);
 
             result = new InspectionResult(
                 fingerprint,
