@@ -14,16 +14,21 @@ if not defined CHI_SAVE_DIR set "CHI_SAVE_DIR=C:\Users\magni\Downloads"
 set "CHI_WORLD_MOUNT=%CHI_SAVE_DIR%\worlds_local\Dedicated"
 set "CHI_DLL=%REPO_DIR%\src\CatosHoverInspector\bin\Release\net48\net48\CatosHoverInspector.dll"
 set "CHI_CONFIG=%REPO_DIR%\TEST_SERVER\com.catosaur.catoshoverinspector.cfg"
+set "CHI_CLIENT_BEPINEX=%CHI_CLIENT_PROFILE%\BepInEx"
+set "CHI_SERVER_BEPINEX=%CHI_SERVER_INSTALL%\BepInEx"
 
 if not exist "%CHI_SERVER_INSTALL%\valheim_server.exe" goto :no_server
 if not exist "%CHI_SERVER_INSTALL%\valheim_server_Data\Managed\assembly_valheim.dll" goto :no_game_refs
 if not exist "%CHI_CLIENT_PROFILE%\BepInEx" goto :no_client
+if not exist "%CHI_CLIENT_BEPINEX%\core\BepInEx.dll" goto :no_client_bepinex
+if not exist "%CHI_SERVER_BEPINEX%\core\BepInEx.dll" goto :no_server_bepinex
 if not exist "%REPO_DIR%\TEST_SERVER\adminlist.txt" goto :no_adminlist
 if not exist "%CHI_WORLD_DIR%" goto :no_world
 if not exist "%CHI_WORLD_DIR%\*.db2" goto :no_world
 if not exist "%CHI_WORLD_DIR%\*.fwl2" goto :no_world
 if not exist "%CHI_CONFIG%" goto :no_config
 tasklist /FI "IMAGENAME eq valheim.exe" 2>nul | find /I "valheim.exe" >nul && goto :client_running
+tasklist /FI "IMAGENAME eq valheim_server.exe" 2>nul | find /I "valheim_server.exe" >nul && goto :server_running
 
 if not exist "%REPO_DIR%\scripts\build.ps1" goto :no_build_script
 powershell -NoProfile -ExecutionPolicy Bypass -File "%REPO_DIR%\scripts\build.ps1"
@@ -33,6 +38,13 @@ if not exist "%CHI_DLL%" goto :no_mod
 REM Refuse to run a pre-refresh dedicated server against newer local refs.
 if not exist "%REPO_DIR%\lib\assembly_valheim.dll" goto :no_local_ref
 for /f %%A in ('powershell -NoProfile -Command "$server=(Get-Item ''%CHI_SERVER_INSTALL%\valheim_server_Data\Managed\assembly_valheim.dll'').LastWriteTimeUtc; $reference=(Get-Item ''%REPO_DIR%\lib\assembly_valheim.dll'').LastWriteTimeUtc; if($server -lt $reference){''STALE''}"') do if "%%A"=="STALE" goto :stale_game
+
+REM Keep the dedicated server on the newest BepInEx baseline available in the
+REM selected CatosHoverInspector client profile. Only BepInEx core DLLs and
+REM Windows loader files are synchronized; client plugins/config/world data
+REM are never copied to the server.
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $clientRoot='%CHI_CLIENT_BEPINEX%'; $serverRoot='%CHI_SERVER_BEPINEX%'; $clientVersion=[Version](Get-Item -LiteralPath (Join-Path $clientRoot 'core\BepInEx.dll')).VersionInfo.FileVersion; $serverVersion=[Version](Get-Item -LiteralPath (Join-Path $serverRoot 'core\BepInEx.dll')).VersionInfo.FileVersion; if($serverVersion -lt $clientVersion){ Get-ChildItem -LiteralPath (Join-Path $clientRoot 'core') -Filter '*.dll' -File | Copy-Item -Destination (Join-Path $serverRoot 'core') -Force; Copy-Item -LiteralPath (Join-Path $clientRoot '..\winhttp.dll') -Destination '%CHI_SERVER_INSTALL%\winhttp.dll' -Force; Copy-Item -LiteralPath (Join-Path $clientRoot '..\doorstop_config.ini') -Destination '%CHI_SERVER_INSTALL%\doorstop_config.ini' -Force; Write-Host ('Updated server BepInEx ' + $serverVersion + ' -> ' + $clientVersion) } else { Write-Host ('Server BepInEx ' + $serverVersion + ' is current against client baseline ' + $clientVersion) }"
+if errorlevel 1 goto :bepinex_sync_failed
 
 if not exist "%CHI_SAVE_DIR%\worlds_local" mkdir "%CHI_SAVE_DIR%\worlds_local"
 if errorlevel 1 goto :world_mount_failed
@@ -112,6 +124,28 @@ exit /b 1
 echo ERROR: r2modman CatosHoverInspector profile was not found:
 echo        %CHI_CLIENT_PROFILE%
 echo Set CHI_CLIENT_PROFILE if the profile is installed elsewhere.
+pause
+exit /b 1
+:no_client_bepinex
+echo ERROR: The selected client profile does not contain BepInEx core files:
+echo        %CHI_CLIENT_BEPINEX%\core
+echo Update or repair the CatosHoverInspector r2modman profile first.
+pause
+exit /b 1
+:no_server_bepinex
+echo ERROR: The dedicated server does not contain BepInEx core files:
+echo        %CHI_SERVER_BEPINEX%\core
+echo Install BepInExPack Valheim into the dedicated-server installation first.
+pause
+exit /b 1
+:server_running
+echo ERROR: valheim_server.exe is already running.
+echo Stop the dedicated server before the launcher updates BepInEx files.
+pause
+exit /b 1
+:bepinex_sync_failed
+echo ERROR: Could not validate or update the dedicated-server BepInEx files.
+echo No server launch was attempted.
 pause
 exit /b 1
 :build_failed
