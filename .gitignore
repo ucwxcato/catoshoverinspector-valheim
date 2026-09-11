@@ -1,0 +1,142 @@
+# C# / .NET build output
+**/bin/
+**/obj/
+TestResults/
+artifacts/
+coverage/
+*.coverage
+*.coveragexml
+
+# Local game and BepInEx build references
+lib/
+**/lib/
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+*.csproj.user
+
+# IDE and editor state
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+_ReSharper*/
+*.resharper
+*.swp
+*.swo
+
+# Local Valheim/BepInEx runtime directories
+BepInEx/
+**/BepInEx/
+doorstop_libs/
+**/doorstop_libs/
+winhttp.dll
+doorstop_config.ini
+doorstop_log.txt
+LogOutput.log
+**/LogOutput.log
+*.log
+config/
+plugins/
+patchers/
+cache/
+unstripped_corlib/
+
+# Test-server runtime state. Keep the launcher, README, seed config, and
+# adminlist.txt tracked; ignore only generated state beneath TEST_SERVER.
+TEST_SERVER/BepInEx/
+TEST_SERVER/world/
+TEST_SERVER/worlds/
+TEST_SERVER/worlds_local/
+TEST_SERVER/characters/
+TEST_SERVER/characters_local/
+TEST_SERVER/saves/
+TEST_SERVER/cache/
+TEST_SERVER/logs/
+TEST_SERVER/valheim_server_Data/
+TEST_SERVER/*.db
+TEST_SERVER/*.db2
+TEST_SERVER/*.fwl
+TEST_SERVER/*.fwl2
+TEST_SERVER/*.chunk
+TEST_SERVER/*.chunks
+TEST_SERVER/*.ok
+TEST_SERVER/*.old
+TEST_SERVER/*.bak
+TEST_SERVER/*.backup
+TEST_SERVER/*.dmp
+TEST_SERVER/adminlist.active.txt
+TEST_SERVER/bannedlist.txt
+TEST_SERVER/permittedlist.txt
+
+# Valheim save/runtime files anywhere in the repository. A future committed
+# fixture must use an explicit negation and document that it is intentional.
+*.db
+*.db2
+*.fwl
+*.fwl2
+*.chunk
+*.chunks
+*.ok
+*.old
+*.bak
+*.backup
+*.dmp
+worlds_local/
+characters_local/
+
+# Local generated configs and identity/access files
+*.local.cfg
+*.private.cfg
+*.local.json
+*.private.json
+adminlist.txt
+bannedlist.txt
+permittedlist.txt
+steam_appid.txt
+
+# Preserve the version-controlled test harness seed files.
+!TEST_SERVER/adminlist.txt
+!TEST_SERVER/*.cfg
+!TEST_SERVER/*.bat
+!TEST_SERVER/*.cmd
+!TEST_SERVER/README.md
+
+# Secrets and machine-local environment files
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.pfx
+*.key
+*.crt
+*.cer
+*.token
+*credentials*
+*secret*
+*apikey*
+*api-key*
+
+# Temporary and crash files
+*.tmp
+*.temp
+*.swp
+*.dmp
+crashdumps/
+diagnostics/
+
+# Recoverable live-server snapshots
+.server-wipe-backup-*/
+*.world-backup
+
+# OS metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
