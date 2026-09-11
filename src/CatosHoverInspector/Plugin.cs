@@ -23,6 +23,8 @@ namespace CatosHoverInspector
 
             if (ModConfig.EnablePipelineSmokeTest.Value)
                 InspectorRegistry.Register(new NativeHoverSmokeInspector());
+            if (ModConfig.EnableCraftingStationInspector.Value)
+                InspectorRegistry.Register(new CraftingStationInspector());
 
             _harmony = new Harmony(Guid);
             _harmony.PatchAll(typeof(HoverInspectorPatches));

@@ -1,0 +1,68 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using UnityEngine;
+
+namespace CatosHoverInspector
+{
+    internal sealed class CraftingStationInspector : IHoverInspector
+    {
+        public string Id { get { return "crafting-station"; } }
+        public int Priority { get { return 100; } }
+
+        public bool CanInspect(InspectionContext context)
+        {
+            CraftingStation station;
+            return ModConfig.EnableCraftingStationInspector.Value &&
+                TryResolve(context, out station);
+        }
+
+        public bool TryInspect(InspectionContext context, out InspectionResult result)
+        {
+            result = null;
+            if (!TryResolve(context, out CraftingStation station))
+                return false;
+
+            int level = Math.Max(0, station.GetLevel(false));
+            int extensionCount = Math.Max(0, station.GetExtentionCount(false));
+            float buildRange = Math.Max(0f, station.GetStationBuildRange());
+            string stationName = SafeText.CleanOrFallback(station.GetHoverName(), "Crafting station");
+
+            var lines = new List<DisplayLine>
+            {
+                new DisplayLine("Level", level.ToString(CultureInfo.InvariantCulture)),
+                new DisplayLine("Extensions (detected)", extensionCount.ToString(CultureInfo.InvariantCulture)),
+                new DisplayLine("Repair", station.m_canRepair ? "Available" : "Unavailable"),
+                new DisplayLine("Build range", buildRange.ToString("0.0", CultureInfo.InvariantCulture) + "m")
+            };
+
+            string fingerprint = string.Join("|", stationName,
+                level.ToString(CultureInfo.InvariantCulture),
+                extensionCount.ToString(CultureInfo.InvariantCulture),
+                station.m_canRepair ? "repair" : "no-repair",
+                buildRange.ToString("0.0", CultureInfo.InvariantCulture));
+
+            result = new InspectionResult(
+                fingerprint,
+                stationName,
+                lines,
+                new EtaDescriptor[0],
+                new string[0]);
+            return true;
+        }
+
+        private static bool TryResolve(InspectionContext context, out CraftingStation station)
+        {
+            station = null;
+            if (context == null || !context.HoverObject)
+                return false;
+
+            // Valheim's native hover object is often the collider child rather
+            // than the station component itself. Keep the search bounded to
+            // the target's parent/child hierarchy.
+            station = context.HoverObject.GetComponentInParent<CraftingStation>() ??
+                context.HoverObject.GetComponentInChildren<CraftingStation>(true);
+            return station;
+        }
+    }
+}
