@@ -50,7 +50,7 @@ namespace CatosHoverInspector
             bool active = readings.Active && hasInput && hasFuel && readings.SecondsPerProduct > 0f &&
                 readings.Power > 0.01f;
             float nextSeconds;
-            bool hasNextEta = TryGetSmelterNextEta(readings, active, out nextSeconds);
+            bool hasNextEta = NativeTimeReader.TryGetSmelterNextEta(readings, active, out nextSeconds);
 
             string name = SafeText.CleanOrFallback(smelter.m_name, "Smelter");
             string status = GetSmelterStatus(readings, active, hasInput, hasFuel, hasOutput);
@@ -69,7 +69,10 @@ namespace CatosHoverInspector
                     readings.FuelCapacity.ToString(CultureInfo.InvariantCulture)));
             if (ModConfig.ShowOutput.Value)
                 lines.Add(new DisplayLine("Output", hasOutput
-                    ? readings.OutputCount.ToString(CultureInfo.InvariantCulture) + " ready"
+                    ? readings.OutputCount.ToString(CultureInfo.InvariantCulture) +
+                      (readings.OutputCapacity > 0
+                          ? "/" + readings.OutputCapacity.ToString(CultureInfo.InvariantCulture) + " ready"
+                          : " ready")
                     : "Empty"));
             if (ModConfig.ShowCapacities.Value)
                 lines.Add(new DisplayLine("Capacity", "Input " + readings.InputCapacity.ToString(CultureInfo.InvariantCulture) +
@@ -155,32 +158,61 @@ namespace CatosHoverInspector
             result = null;
             float power = Mathf.Clamp01(windmill.GetPowerOutput());
             string name = "Windmill";
-            string status = power > 0.01f ? "Running" : "Paused (no wind)";
+            Smelter linkedSmelter;
+            SmelterReadings linkedReadings = new SmelterReadings();
+            bool hasLinkedSmelter = NativeTimeReader.TryGetLinkedSmelter(windmill, out linkedSmelter) &&
+                NativeTimeReader.TryReadSmelter(linkedSmelter, out linkedReadings);
+            bool linkedInput = hasLinkedSmelter && linkedReadings.InputCount > 0;
+            bool linkedActive = linkedInput && linkedReadings.Active && power > 0.01f &&
+                linkedReadings.SecondsPerProduct > 0f;
+            string status = linkedActive ? "Running" :
+                (power <= 0.01f ? "Paused (no wind)" : linkedInput ? "Paused" : "Idle");
             var lines = new List<DisplayLine>
             {
                 new DisplayLine("Status", status),
                 new DisplayLine("Power", (power * 100f).ToString("0", CultureInfo.InvariantCulture) + "%")
             };
-            string fingerprint = string.Join("|", name, status, power.ToString("0.00", CultureInfo.InvariantCulture));
-            result = new InspectionResult(fingerprint, name, lines, new EtaDescriptor[0], new string[0]);
-            return true;
-        }
 
-        private static bool TryGetSmelterNextEta(SmelterReadings readings, bool active, out float seconds)
-        {
-            seconds = 0f;
-            if (!active || readings.Power <= 0.01f || readings.SecondsPerProduct <= 0f)
-                return false;
+            var etas = new List<EtaDescriptor>();
+            if (hasLinkedSmelter)
+            {
+                if (ModConfig.ShowInput.Value)
+                    lines.Add(new DisplayLine("Input", linkedInput
+                        ? FormatItem(linkedReadings.InputName) + " " + linkedReadings.InputCount.ToString(CultureInfo.InvariantCulture) +
+                          FormatCapacity(linkedReadings.InputCapacity)
+                        : "Empty"));
+                if (ModConfig.ShowOutput.Value)
+                    lines.Add(new DisplayLine("Output", linkedReadings.OutputCount > 0
+                        ? linkedReadings.OutputCount.ToString(CultureInfo.InvariantCulture) +
+                          (linkedReadings.OutputCapacity > 0
+                              ? "/" + linkedReadings.OutputCapacity.ToString(CultureInfo.InvariantCulture) + " ready"
+                              : " ready")
+                        : "Empty"));
 
-            float progress = Mathf.Max(0f, readings.BakeTimer);
-            if (readings.HasNativeElapsed)
-                progress += (float)(readings.NativeElapsedSeconds + Math.Max(0f, readings.Accumulator)) * readings.Power;
+                float nextSeconds;
+                if (NativeTimeReader.TryGetSmelterNextEta(linkedReadings, linkedActive, out nextSeconds))
+                {
+                    etas.Add(new EtaDescriptor("Next output", EtaState.Active, nextSeconds));
+                    if (ModConfig.ShowBatchEta.Value && linkedReadings.InputCount > 1)
+                        etas.Add(new EtaDescriptor("Batch complete", EtaState.Active,
+                            nextSeconds + (linkedReadings.InputCount - 1) * linkedReadings.SecondsPerProduct /
+                            Math.Max(0.01f, linkedReadings.Power)));
+                }
 
-            seconds = (readings.SecondsPerProduct - progress) / readings.Power;
-            if (float.IsNaN(seconds) || float.IsInfinity(seconds))
-                return false;
-            if (seconds < 0f)
-                seconds = 0f;
+                if (ModConfig.ShowCapacities.Value && linkedReadings.SecondsPerProduct > 0f)
+                {
+                    float progress = Mathf.Clamp01(NativeTimeReader.GetSmelterProgress(linkedReadings) /
+                        linkedReadings.SecondsPerProduct);
+                    lines.Add(new DisplayLine("Progress", (progress * 100f).ToString("0", CultureInfo.InvariantCulture) + "%"));
+                }
+            }
+
+            string fingerprint = string.Join("|", name, status, power.ToString("0.00", CultureInfo.InvariantCulture),
+                hasLinkedSmelter ? linkedReadings.InputName : string.Empty,
+                hasLinkedSmelter ? linkedReadings.InputCount.ToString(CultureInfo.InvariantCulture) : "0",
+                hasLinkedSmelter ? linkedReadings.OutputCount.ToString(CultureInfo.InvariantCulture) : "0",
+                etas.Count > 0 ? NativeTimeReader.VisibleSeconds(etas[0].RemainingSeconds).ToString(CultureInfo.InvariantCulture) : "paused");
+            result = new InspectionResult(fingerprint, name, lines, etas, new string[0]);
             return true;
         }
 

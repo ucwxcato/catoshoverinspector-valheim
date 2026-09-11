@@ -15,6 +15,7 @@ namespace CatosHoverInspector
         internal float BakeTimer;
         internal float Accumulator;
         internal int OutputCount;
+        internal int OutputCapacity;
         internal bool Active;
         internal float Power;
         internal double NativeElapsedSeconds;
@@ -56,6 +57,10 @@ namespace CatosHoverInspector
             AccessTools.Method(typeof(Fermenter), "GetFermentationTime");
         private static readonly FieldInfo SmelterNView =
             AccessTools.Field(typeof(Smelter), "m_nview");
+        private static readonly FieldInfo WindmillSmelter =
+            AccessTools.Field(typeof(Windmill), "m_smelter");
+        private static readonly MethodInfo SmelterGetItemConversion =
+            AccessTools.Method(typeof(Smelter), "GetItemConversion");
 
         internal static bool TryReadSmelter(Smelter smelter, out SmelterReadings readings)
         {
@@ -79,7 +84,40 @@ namespace CatosHoverInspector
             readings.FuelCapacity = Math.Max(0, smelter.m_maxFuel);
             readings.SecondsPerProduct = Math.Max(0f, smelter.m_secPerProduct);
             readings.Power = smelter.m_windmill ? smelter.m_windmill.GetPowerOutput() : 1f;
+            readings.OutputCapacity = TryGetOutputCapacity(smelter, readings.InputName);
             readings.HasNativeElapsed = TryGetNativeElapsedSeconds(smelter, out readings.NativeElapsedSeconds);
+            return true;
+        }
+
+        internal static bool TryGetLinkedSmelter(Windmill windmill, out Smelter smelter)
+        {
+            smelter = null;
+            if (windmill == null || WindmillSmelter == null)
+                return false;
+
+            smelter = WindmillSmelter.GetValue(windmill) as Smelter;
+            return smelter;
+        }
+
+        internal static float GetSmelterProgress(SmelterReadings readings)
+        {
+            float progress = Math.Max(0f, readings.BakeTimer);
+            if (readings.HasNativeElapsed)
+                progress += (float)(readings.NativeElapsedSeconds + Math.Max(0f, readings.Accumulator)) * readings.Power;
+            return progress;
+        }
+
+        internal static bool TryGetSmelterNextEta(SmelterReadings readings, bool active, out float seconds)
+        {
+            seconds = 0f;
+            if (!active || readings.Power <= 0.01f || readings.SecondsPerProduct <= 0f)
+                return false;
+
+            seconds = (readings.SecondsPerProduct - GetSmelterProgress(readings)) / readings.Power;
+            if (float.IsNaN(seconds) || float.IsInfinity(seconds))
+                return false;
+            if (seconds < 0f)
+                seconds = 0f;
             return true;
         }
 
@@ -141,6 +179,34 @@ namespace CatosHoverInspector
             // Native Smelter caps its accumulated catch-up window at one hour.
             seconds = Math.Min(seconds, 3600d);
             return true;
+        }
+
+        private static int TryGetOutputCapacity(Smelter smelter, string inputName)
+        {
+            if (smelter == null || !smelter.m_spawnStack || string.IsNullOrEmpty(inputName) ||
+                SmelterGetItemConversion == null)
+                return 0;
+
+            try
+            {
+                object conversion = SmelterGetItemConversion.Invoke(smelter, new object[] { inputName });
+                if (conversion == null)
+                    return 0;
+
+                FieldInfo outputField = AccessTools.Field(conversion.GetType(), "m_to");
+                ItemDrop output = outputField == null ? null : outputField.GetValue(conversion) as ItemDrop;
+                if (output == null || output.m_itemData == null || output.m_itemData.m_shared == null)
+                    return 0;
+                return Math.Max(0, output.m_itemData.m_shared.m_maxStackSize);
+            }
+            catch (TargetInvocationException)
+            {
+                return 0;
+            }
+            catch (ArgumentException)
+            {
+                return 0;
+            }
         }
 
         private static bool TryInvoke<T>(MethodInfo method, object target, out T value)
