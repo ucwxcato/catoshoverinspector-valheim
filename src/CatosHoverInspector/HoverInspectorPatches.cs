@@ -10,10 +10,7 @@ namespace CatosHoverInspector
         {
             try
             {
-                // This runs after Valheim has rebuilt m_hoverName. Capture
-                // that native result before the overlay is applied so a
-                // distance-only change ([E] Use <-> Too far) is observable.
-                HoverOverlay.Apply(__instance, player, true);
+                HoverOverlay.Apply(__instance, player);
             }
             catch (Exception ex)
             {

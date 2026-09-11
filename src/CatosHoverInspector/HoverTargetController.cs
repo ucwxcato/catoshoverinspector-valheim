@@ -20,5 +20,29 @@ namespace CatosHoverInspector
         {
             return target ? target.GetInstanceID() : 0;
         }
+
+        internal static bool TryGetNativeHoverText(GameObject target, out string text)
+        {
+            text = null;
+            if (!target)
+                return false;
+
+            Hoverable hoverable = target.GetComponentInParent<Hoverable>();
+            if (hoverable == null)
+                return false;
+
+            // Ask the hovered object directly each frame. Hud.UpdateCrosshair
+            // can leave our previously composed text in m_hoverName between
+            // updates, while GetHoverText recalculates live range-dependent
+            // actions such as [E] Use and Too far.
+            text = hoverable.GetHoverText() ?? string.Empty;
+            if (ZInput.IsGamepadActive())
+            {
+                text = text.Replace("[<color=yellow><b><sprite=", "<sprite=")
+                    .Replace("></b></color>]", ">");
+            }
+
+            return true;
+        }
     }
 }

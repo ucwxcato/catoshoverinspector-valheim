@@ -13,7 +13,7 @@ namespace CatosHoverInspector
         private static Hud _ownedHud;
         private static int _lastProcessedFrame = -1;
 
-        internal static void Apply(Hud hud, Player player, bool nativeRefresh = false)
+        internal static void Apply(Hud hud, Player player)
         {
             if (!hud || !player || ModConfig.Enabled == null || !ModConfig.Enabled.Value ||
                 hud.m_hoverName == null)
@@ -40,17 +40,16 @@ namespace CatosHoverInspector
                 _lastProcessedFrame = -1;
             }
 
-            if (nativeRefresh)
-                _vanillaText = hud.m_hoverName.text;
-            else if (targetChanged || _vanillaText == null)
-                _vanillaText = hud.m_hoverName.text;
-
             // Postfix and LateUpdate can both reach this method in one frame.
-            // Inspect once per Unity frame, then re-apply the cached result in
-            // LateUpdate if another HUD writer changed the visible text.
+            // Read both native and custom state once per Unity frame, then
+            // re-apply the cached result in LateUpdate if another HUD writer
+            // changed the visible text.
             if (targetChanged || _lastProcessedFrame != Time.frameCount)
             {
                 _lastProcessedFrame = Time.frameCount;
+                if (!HoverTargetController.TryGetNativeHoverText(target, out _vanillaText))
+                    _vanillaText = hud.m_hoverName.text;
+
                 float now = Time.unscaledTime;
                 InspectionContext context = new InspectionContext(player, target, now);
 
@@ -64,8 +63,7 @@ namespace CatosHoverInspector
                     !string.Equals(_formattedVanillaText, _vanillaText, StringComparison.Ordinal))
                 {
                     _fingerprint = result.Fingerprint;
-                    string sourceText = _ownedHud == hud ? _vanillaText : hud.m_hoverName.text;
-                    if (!HoverTextFormatter.TryFormat(sourceText, result, out _renderedText))
+                    if (!HoverTextFormatter.TryFormat(_vanillaText, result, out _renderedText))
                     {
                         ReleaseOwnedText(hud);
                         return;
