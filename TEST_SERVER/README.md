@@ -56,3 +56,8 @@ $env:CHI_SAVE_DIR = 'C:\Users\magni\Downloads'
 
 The admin list is only test-harness setup. CatosHoverInspector does not read it
 and has no admin-only behavior.
+
+Latest smoke-test note (2026-09-11): the deployed client DLL loaded successfully
+and the station hover feature was reported working. The dedicated-server log
+shows BepInEx `5.4.23.5` and no CatosHoverInspector server load. Full station
+state/cleanup coverage remains a development task.
