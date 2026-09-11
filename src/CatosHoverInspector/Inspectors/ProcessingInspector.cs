@@ -59,24 +59,9 @@ namespace CatosHoverInspector
                 new DisplayLine("Status", status)
             };
 
-            if (ModConfig.ShowInput.Value)
-                lines.Add(new DisplayLine("Input", hasInput
-                    ? FormatItem(readings.InputName) + " " + readings.InputCount.ToString(CultureInfo.InvariantCulture) +
-                      FormatCapacity(readings.InputCapacity)
-                    : "Empty"));
             if (ModConfig.ShowFuel.Value && readings.FuelCapacity > 0)
                 lines.Add(new DisplayLine("Fuel", FormatNumber(readings.Fuel) + "/" +
                     readings.FuelCapacity.ToString(CultureInfo.InvariantCulture)));
-            if (ModConfig.ShowOutput.Value)
-                lines.Add(new DisplayLine("Output", hasOutput
-                    ? readings.OutputCount.ToString(CultureInfo.InvariantCulture) +
-                      (readings.OutputCapacity > 0
-                          ? "/" + readings.OutputCapacity.ToString(CultureInfo.InvariantCulture) + " ready"
-                          : " ready")
-                    : "Empty"));
-            if (ModConfig.ShowCapacities.Value)
-                lines.Add(new DisplayLine("Capacity", "Input " + readings.InputCapacity.ToString(CultureInfo.InvariantCulture) +
-                    ", Fuel " + readings.FuelCapacity.ToString(CultureInfo.InvariantCulture)));
 
             var etas = new List<EtaDescriptor>();
             if (hasNextEta)
