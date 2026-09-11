@@ -9,10 +9,11 @@ namespace CatosHoverInspector
         private static string _fingerprint;
         private static string _renderedText;
         private static string _vanillaText;
+        private static string _formattedVanillaText;
         private static Hud _ownedHud;
         private static int _lastProcessedFrame = -1;
 
-        internal static void Apply(Hud hud, Player player)
+        internal static void Apply(Hud hud, Player player, bool nativeRefresh = false)
         {
             if (!hud || !player || ModConfig.Enabled == null || !ModConfig.Enabled.Value ||
                 hud.m_hoverName == null)
@@ -35,9 +36,14 @@ namespace CatosHoverInspector
                 _targetIdentity = targetIdentity;
                 _fingerprint = null;
                 _renderedText = null;
-                _vanillaText = hud.m_hoverName.text;
+                _formattedVanillaText = null;
                 _lastProcessedFrame = -1;
             }
+
+            if (nativeRefresh)
+                _vanillaText = hud.m_hoverName.text;
+            else if (targetChanged || _vanillaText == null)
+                _vanillaText = hud.m_hoverName.text;
 
             // Postfix and LateUpdate can both reach this method in one frame.
             // Inspect once per Unity frame, then re-apply the cached result in
@@ -54,7 +60,8 @@ namespace CatosHoverInspector
                     return;
                 }
 
-                if (!string.Equals(_fingerprint, result.Fingerprint, StringComparison.Ordinal))
+                if (!string.Equals(_fingerprint, result.Fingerprint, StringComparison.Ordinal) ||
+                    !string.Equals(_formattedVanillaText, _vanillaText, StringComparison.Ordinal))
                 {
                     _fingerprint = result.Fingerprint;
                     string sourceText = _ownedHud == hud ? _vanillaText : hud.m_hoverName.text;
@@ -63,6 +70,8 @@ namespace CatosHoverInspector
                         ReleaseOwnedText(hud);
                         return;
                     }
+
+                    _formattedVanillaText = _vanillaText;
                 }
             }
 
@@ -85,6 +94,7 @@ namespace CatosHoverInspector
             _fingerprint = null;
             _renderedText = null;
             _vanillaText = null;
+            _formattedVanillaText = null;
             _ownedHud = null;
             _lastProcessedFrame = -1;
         }
@@ -105,6 +115,7 @@ namespace CatosHoverInspector
             _ownedHud = null;
             _renderedText = null;
             _vanillaText = null;
+            _formattedVanillaText = null;
         }
     }
 }
