@@ -25,6 +25,10 @@ namespace CatosHoverInspector
 
             int level = Math.Max(0, station.GetLevel(false));
             int extensionCount = Math.Max(0, station.GetExtentionCount(false));
+            bool covered;
+            string coverageText = TryReadCoverage(station, out covered)
+                ? (covered ? "Yes" : "No")
+                : "Unknown";
             bool usable = station.CheckUsable(context.Player, false);
             string stationName = SafeText.CleanOrFallback(station.GetHoverName(), "Crafting station");
 
@@ -32,12 +36,14 @@ namespace CatosHoverInspector
             {
                 new DisplayLine("Level", level.ToString(CultureInfo.InvariantCulture)),
                 new DisplayLine("Extensions (detected)", extensionCount.ToString(CultureInfo.InvariantCulture)),
+                new DisplayLine("Covered", coverageText),
                 new DisplayLine("Usable", usable ? "Yes" : "No")
             };
 
             string fingerprint = string.Join("|", stationName,
                 level.ToString(CultureInfo.InvariantCulture),
                 extensionCount.ToString(CultureInfo.InvariantCulture),
+                coverageText,
                 usable ? "usable" : "not-usable");
 
             result = new InspectionResult(
@@ -45,7 +51,21 @@ namespace CatosHoverInspector
                 stationName,
                 lines,
                 new EtaDescriptor[0],
-                new string[0]);
+                new string[0],
+                true);
+            return true;
+        }
+
+        private static bool TryReadCoverage(CraftingStation station, out bool covered)
+        {
+            covered = false;
+            if (!station.m_roofCheckPoint)
+                return false;
+
+            float cover;
+            bool underRoof;
+            Cover.GetCoverForPoint(station.m_roofCheckPoint.position, out cover, out underRoof, 0.5f);
+            covered = underRoof && cover >= 0.7f;
             return true;
         }
 

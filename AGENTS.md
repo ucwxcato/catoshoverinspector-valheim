@@ -152,8 +152,9 @@ ETA requirements:
 - A full output or paused job must not continue counting down.
 - A beehive's `Next honey` and `Full` values are separate from any harvest
   action; looking at the hive must never harvest it.
-- Refresh dynamic display at a bounded cadence and redraw only when the rounded
-  visible value changes.
+- Evaluate dynamic native state once per Unity frame and redraw only when the
+  visible value changes. Processing ETAs must therefore include their rounded
+  visible countdown in the result fingerprint.
 - Clamp negative timer values to `Ready`; never show negative time.
 
 ## Build and reference workflow

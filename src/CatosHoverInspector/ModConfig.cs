@@ -5,8 +5,6 @@ namespace CatosHoverInspector
     internal static class ModConfig
     {
         internal static ConfigEntry<bool> Enabled;
-        internal static ConfigEntry<int> UpdateIntervalMs;
-        internal static ConfigEntry<int> EtaRefreshIntervalMs;
         internal static ConfigEntry<int> MaxLines;
         internal static ConfigEntry<int> MaxTextCharacters;
         internal static ConfigEntry<int> MaxWarnings;
@@ -44,12 +42,6 @@ namespace CatosHoverInspector
         {
             Enabled = config.Bind("General", "Enabled", true,
                 "Enable the client-only hover inspector.");
-            UpdateIntervalMs = config.Bind("General", "UpdateIntervalMs", 100,
-                new ConfigDescription("Minimum milliseconds between target/state reads.",
-                    new AcceptableValueRange<int>(25, 500)));
-            EtaRefreshIntervalMs = config.Bind("General", "EtaRefreshIntervalMs", 1000,
-                new ConfigDescription("Minimum milliseconds between visible ETA redraws.",
-                    new AcceptableValueRange<int>(250, 5000)));
             MaxLines = config.Bind("Display", "MaxLines", 20,
                 new ConfigDescription("Maximum inspector lines appended to native hover text.",
                     new AcceptableValueRange<int>(1, 100)));

@@ -10,7 +10,7 @@ namespace CatosHoverInspector
         private static string _renderedText;
         private static string _vanillaText;
         private static Hud _ownedHud;
-        private static float _nextReadTime;
+        private static int _lastProcessedFrame = -1;
 
         internal static void Apply(Hud hud, Player player)
         {
@@ -36,13 +36,16 @@ namespace CatosHoverInspector
                 _fingerprint = null;
                 _renderedText = null;
                 _vanillaText = hud.m_hoverName.text;
-                _nextReadTime = 0f;
+                _lastProcessedFrame = -1;
             }
 
-            float now = Time.unscaledTime;
-            if (targetChanged || now >= _nextReadTime)
+            // Postfix and LateUpdate can both reach this method in one frame.
+            // Inspect once per Unity frame, then re-apply the cached result in
+            // LateUpdate if another HUD writer changed the visible text.
+            if (targetChanged || _lastProcessedFrame != Time.frameCount)
             {
-                _nextReadTime = now + Math.Max(0.025f, ModConfig.UpdateIntervalMs.Value / 1000f);
+                _lastProcessedFrame = Time.frameCount;
+                float now = Time.unscaledTime;
                 InspectionContext context = new InspectionContext(player, target, now);
 
                 if (!InspectorRegistry.TryInspect(context, out InspectionResult result))
@@ -83,7 +86,7 @@ namespace CatosHoverInspector
             _renderedText = null;
             _vanillaText = null;
             _ownedHud = null;
-            _nextReadTime = 0f;
+            _lastProcessedFrame = -1;
         }
 
         private static void ReleaseOwnedText(Hud hud)

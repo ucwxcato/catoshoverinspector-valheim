@@ -16,7 +16,8 @@ namespace CatosHoverInspector
             StringBuilder builder = new StringBuilder();
             int lineCount = 0;
 
-            if (ModConfig.ShowVanillaName.Value && !string.IsNullOrEmpty(vanillaText))
+            if (result.PreserveNativeText && ModConfig.ShowVanillaName.Value &&
+                !string.IsNullOrEmpty(vanillaText))
                 AppendLine(builder, vanillaText, ref lineCount, maxLines);
             if (!string.IsNullOrEmpty(result.Header))
                 AppendLine(builder, EscapeRichText(SafeText.CleanOrFallback(result.Header, "Inspector")),

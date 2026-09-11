@@ -9,13 +9,15 @@ namespace CatosHoverInspector
             string header,
             IReadOnlyList<DisplayLine> lines,
             IReadOnlyList<EtaDescriptor> etas,
-            IReadOnlyList<string> warnings)
+            IReadOnlyList<string> warnings,
+            bool preserveNativeText = true)
         {
             Fingerprint = fingerprint ?? string.Empty;
             Header = header ?? string.Empty;
             Lines = lines ?? new DisplayLine[0];
             Etas = etas ?? new EtaDescriptor[0];
             Warnings = warnings ?? new string[0];
+            PreserveNativeText = preserveNativeText;
         }
 
         internal string Fingerprint { get; }
@@ -23,5 +25,6 @@ namespace CatosHoverInspector
         internal IReadOnlyList<DisplayLine> Lines { get; }
         internal IReadOnlyList<EtaDescriptor> Etas { get; }
         internal IReadOnlyList<string> Warnings { get; }
+        internal bool PreserveNativeText { get; }
     }
 }
