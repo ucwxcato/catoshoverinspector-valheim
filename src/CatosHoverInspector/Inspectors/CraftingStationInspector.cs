@@ -25,22 +25,20 @@ namespace CatosHoverInspector
 
             int level = Math.Max(0, station.GetLevel(false));
             int extensionCount = Math.Max(0, station.GetExtentionCount(false));
-            float buildRange = Math.Max(0f, station.GetStationBuildRange());
+            bool usable = station.CheckUsable(context.Player, false);
             string stationName = SafeText.CleanOrFallback(station.GetHoverName(), "Crafting station");
 
             var lines = new List<DisplayLine>
             {
                 new DisplayLine("Level", level.ToString(CultureInfo.InvariantCulture)),
                 new DisplayLine("Extensions (detected)", extensionCount.ToString(CultureInfo.InvariantCulture)),
-                new DisplayLine("Repair", station.m_canRepair ? "Available" : "Unavailable"),
-                new DisplayLine("Build range", buildRange.ToString("0.0", CultureInfo.InvariantCulture) + "m")
+                new DisplayLine("Usable", usable ? "Yes" : "No")
             };
 
             string fingerprint = string.Join("|", stationName,
                 level.ToString(CultureInfo.InvariantCulture),
                 extensionCount.ToString(CultureInfo.InvariantCulture),
-                station.m_canRepair ? "repair" : "no-repair",
-                buildRange.ToString("0.0", CultureInfo.InvariantCulture));
+                usable ? "usable" : "not-usable");
 
             result = new InspectionResult(
                 fingerprint,
