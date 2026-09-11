@@ -24,8 +24,18 @@ The launcher:
 - never deploys the DLL to the dedicated server;
 - copies the seed admin list to the active save root;
 - seeds the client config only if it does not already exist;
-- refuses to run while Valheim is open;
+- refuses to run while Valheim or the dedicated server is open;
+- compares the client profile's BepInEx core version with the dedicated server;
+- updates only the dedicated server's BepInEx core DLLs and loader files when
+  that server copy is older;
 - checks for a stale dedicated-server assembly before launch.
+
+The selected client profile is the BepInEx freshness baseline. The launcher
+does not copy client plugins, client configuration, worlds, credentials, or
+the complete client profile to the server. The currently observed baseline is
+client BepInEx `5.4.23.5`; the dedicated server currently reports `5.4.23.3`,
+so the first successful launcher run will update the server loader before
+starting it.
 
 Default connection:
 
@@ -46,4 +56,3 @@ $env:CHI_SAVE_DIR = 'C:\Users\magni\Downloads'
 
 The admin list is only test-harness setup. CatosHoverInspector does not read it
 and has no admin-only behavior.
-

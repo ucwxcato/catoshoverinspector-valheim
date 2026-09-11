@@ -8,7 +8,7 @@ hover target. It may show production ETAs, but it never controls production or
 changes game state.
 
 The canonical behavior and delivery contract is
-[DOCS/devplan.md](DOCS/devplan.md). The sibling CatosChestViewer source and
+[DOCS-ignored/devplan.md](DOCS-ignored/devplan.md). The sibling CatosChestViewer source and
 plan are the reference implementation for the native hover/HUD pipeline. The
 shared repository rules are in
 [`../world-setup.md`](../world-setup.md).
@@ -37,8 +37,8 @@ tests exist. A successful build is not gameplay verification.
   from arbitrary polling when the job can pause or block.
 - Distinguish `Next output`, `Batch complete`, `Ready`, `Paused`, `Blocked`,
   and `Unavailable`. Do not display `00:00` as a fake ready state.
-- Fail closed for inaccessible containers and preserve CatosChestViewer's
-  privacy/guard-stone behavior.
+- Do not inspect chest/container contents; CatosChestViewer remains the owner
+  of that feature and its privacy/guard-stone behavior.
 - Keep lines, characters, refresh rate, warnings, and log output bounded.
 - Do not promise compatibility with CatosChestViewer until the two plugins'
   native HUD ownership has been explicitly tested and documented.
@@ -86,7 +86,7 @@ src/CatosHoverInspector/Inspectors/           object-specific read-only logic
 src/CatosHoverInspector/Runtime/              safe component/time helpers
 scripts/                                      references/build/package
 TEST_SERVER/                                  tracked harness seeds/launcher
-DOCS/devplan.md                               canonical implementation plan
+DOCS-ignored/devplan.md                       canonical implementation plan
 ```
 
 An inspector must not reach into another inspector's state. The registry owns
@@ -106,9 +106,10 @@ Player.GetHoverObject()
 ```
 
 Use the sibling CatosChestViewer implementation as a reference, but do not
-hard-reference its assembly. CatosHoverInspector should be able to replace it
-as a unified chest-plus-status viewer. During development, use a clean client
-profile containing CatosHoverInspector only; two independent writers to
+hard-reference its assembly. Port its native target/HUD lifecycle pattern only;
+do not add chest/container inspection to CatosHoverInspector. CatosChestViewer
+remains the separate owner of chest contents. During development, use a clean
+client profile containing CatosHoverInspector only; two independent writers to
 `Hud.m_hoverName` are order-dependent.
 
 The overlay must clear on:
@@ -126,7 +127,6 @@ the appended section bounded.
 
 Initial planned inspectors are:
 
-- chest/container parity;
 - workbench and forge station level/extensions;
 - smelter and kiln input/fuel/output/capacity;
 - fermenter recipe/status/ready time;
@@ -200,6 +200,13 @@ CatosChestViewer launcher and `world-setup.md`:
 - Client profile:
   `...profiles\CatosHoverInspector`.
 
+The selected client profile's `BepInEx\core\BepInEx.dll` is the launcher
+baseline for the dedicated server. On each launch, after confirming both
+processes are stopped, the launcher compares the core BepInEx file versions
+and updates the server only when it is older. That sync is limited to
+`BepInEx\core\*.dll`, `winhttp.dll`, and `doorstop_config.ini`; it never copies
+client plugins, client config, worlds, credentials, or the full profile.
+
 The source world is a Valheim 1.0 directory containing `.db2` and `.fwl2`
 files. The launcher must expose it through a directory junction at the mount
 path; it must not copy, regenerate, repair, delete, or place a nested
@@ -210,16 +217,18 @@ The launcher must:
 
 1. Validate the server executable, managed assembly, client profile, BepInEx,
    seed config, admin list, and source world.
-2. Refuse to run while `valheim.exe` is open.
+2. Refuse to run while `valheim.exe` or `valheim_server.exe` is open.
 3. Rebuild the newest plugin and verify the expected DLL.
 4. Refuse a stale dedicated-server assembly compared with refreshed references.
-5. Create the junction only when the mount is absent; fail closed if a normal
+5. Compare the client/server BepInEx core versions and update the server loader
+   files only when the server is older.
+6. Create the junction only when the mount is absent; fail closed if a normal
    directory or wrong junction already occupies the mount.
-6. Copy the tracked seed `TEST_SERVER/adminlist.txt` to the active save root.
-7. Deploy only the client DLL to the clean CatosHoverInspector profile.
-8. Seed the client config only when it does not already exist.
-9. Print exact source, save root, mount, profile, destinations, and log paths.
-10. Launch with `-world "Dedicated" -savedir "C:\Users\magni\Downloads"`.
+7. Copy the tracked seed `TEST_SERVER/adminlist.txt` to the active save root.
+8. Deploy only the client DLL to the clean CatosHoverInspector profile.
+9. Seed the client config only when it does not already exist.
+10. Print exact source, save root, mount, profile, destinations, and log paths.
+11. Launch with `-world "Dedicated" -savedir "C:\Users\magni\Downloads"`.
 
 The test admin list is harness parity only. This client-only mod must not read
 it or use client-side admin claims.
@@ -234,7 +243,8 @@ dedicated server. At minimum verify:
 - ETA accuracy from display to native completion, including pause/resume;
 - target changes, looking away, range loss, destruction, scene transitions,
   reconnect, and plugin shutdown;
-- private/guard-stone containers remain unreadable;
+- chest/container contents remain owned by CatosChestViewer and are not
+  duplicated by this plugin;
 - no inventory, fuel, honey, processing, portal, build, or world mutation;
 - no repeated client exceptions or stale text;
 - a clean client can connect and play normally while the server lacks this DLL.
@@ -245,7 +255,7 @@ the clean client/server smoke test and failure-path checks pass.
 
 ## Change discipline
 
-- Keep changes scoped to the current phase in `DOCS/devplan.md`.
+- Keep changes scoped to the current phase in `DOCS-ignored/devplan.md`.
 - Do not mark plan checkboxes complete merely because source exists. A checkbox
   is complete only when the stated implementation and verification evidence
   exists.
@@ -254,4 +264,3 @@ the clean client/server smoke test and failure-path checks pass.
 - Do not modify the source world or unrelated CatoHeim projects while working
   on this plugin.
 - Preserve existing user changes in a dirty worktree.
-
